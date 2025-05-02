@@ -53,6 +53,23 @@ A modern web application for creating, managing, and previewing email templates 
 
 ## Running the Application
 
+### Option 1: Using run_dev.py (Recommended)
+
+The easiest way to start both the frontend and backend servers is to use the `run_dev.py` script:
+
+```bash
+python run_dev.py
+```
+
+This will:
+1. Start the Flask backend server on `http://localhost:5000`
+2. Start the Vite development server on `http://localhost:3000`
+3. Automatically open your default browser to `http://localhost:3000`
+
+### Option 2: Manual Start
+
+If you prefer to start the servers manually:
+
 1. Start the backend server:
    ```bash
    cd server
@@ -67,7 +84,7 @@ A modern web application for creating, managing, and previewing email templates 
    ```
    The frontend will start on `http://localhost:5173`
 
-3. Open your browser and navigate to `http://localhost:5173`
+3. Open your browser and navigate to `http://localhost:3000`
 
 ## Project Structure
 
@@ -80,10 +97,12 @@ MessagesAPI/
 │   │   └── main.js        # Application entry point
 │   └── index.html         # HTML template
 │
-└── server/                # Backend Flask application
-    ├── main.py           # Main server file
-    ├── models.py         # Database models
-    └── templates.db      # SQLite database
+├── server/                # Backend Flask application
+│   ├── main.py           # Main server file
+│   ├── models.py         # Database models
+│   └── templates.db      # SQLite database
+│
+└── run_dev.py            # Development server script
 ```
 
 ## Key Components
@@ -101,6 +120,7 @@ MessagesAPI/
 - **main.py**: Flask server with API endpoints
 - **models.py**: SQLAlchemy database models
 - **templates.db**: SQLite database file
+- **run_dev.py**: Development server script for easy startup
 
 ## API Endpoints
 

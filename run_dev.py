@@ -8,10 +8,10 @@ def run_services():
     # Define commands for running both services
     if sys.platform.startswith('win'):
         backend_cmd = 'cd server && python -m flask --app main run'
-        frontend_cmd = 'cd client && npm run dev'
+        frontend_cmd = 'cd client && npm run dev -- --port 3000'
     else:
         backend_cmd = 'cd server && python3 -m flask --app main run'
-        frontend_cmd = 'cd client && npm run dev'
+        frontend_cmd = 'cd client && npm run dev -- --port 3000'
 
     try:
         # Start the Flask backend
@@ -29,11 +29,11 @@ def run_services():
         sleep(5)
         
         # Open the application in the default browser
-        webbrowser.open('http://localhost:5173')
+        webbrowser.open('http://localhost:3000')
         
         print("\nDevelopment servers are running!")
         print("Backend: http://localhost:5000")
-        print("Frontend: http://localhost:5173")
+        print("Frontend: http://localhost:3000")
         print("\nPress Ctrl+C to stop both servers...")
         
         # Keep the script running until interrupted

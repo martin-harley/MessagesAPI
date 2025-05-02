@@ -65,7 +65,27 @@ export default {
       // Previous version for change detection
       previousVersion: null,
       // List of detected changes
-      detectedChanges: []
+      detectedChanges: [],
+      // Default template with slash-based variables
+      defaultTemplate: `Dear /user.firstName,
+
+Thanks for your interest in /company.name. Our representative at /company.address.city 
+will contact you on /meeting.date.
+
+Your package will be delivered to:
+/user.address.street,
+/user.address.city, 
+/user.address.state,
+/user.address.zip
+
+Best regards,
+/sender.name`
+    }
+  },
+  created() {
+    // Initialize the template with default content if none is provided
+    if (!this.modelValue) {
+      this.$emit('update:modelValue', this.defaultTemplate);
     }
   },
   methods: {
@@ -79,11 +99,22 @@ export default {
     // Process the template with variables
     async processTemplate() {
       try {
+        // Convert slash-based variables to curly braces for processing
+        // Match variables that start with / and end with a word character (no trailing dots)
+        const templateWithBraces = this.modelValue.replace(/\/([a-zA-Z0-9.]+[a-zA-Z0-9])/g, (match, variable) => {
+          // Ensure we're not matching partial variables
+          if (match.endsWith('.')) return match;
+          return `{${variable}}`;
+        });
+        
         const response = await axios.post('/api/templates/process', {
-          template: this.modelValue,
+          template: templateWithBraces,
           variables: this.variables
         })
-        this.$emit('update:result', response.data.result.replace(/\n/g, '<br>'))
+        
+        // Convert the result back to slash-based variables for display
+        const resultWithSlashes = response.data.result.replace(/\{([^}]+)\}/g, '/$1');
+        this.$emit('update:result', resultWithSlashes.replace(/\n/g, '<br>'))
         this.$emit('update:errors', response.data.errors || [])
       } catch (error) {
         console.error('Error processing template:', error)
