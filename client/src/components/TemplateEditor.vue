@@ -1,12 +1,18 @@
+<!-- Template editor component for creating and editing email templates -->
 <template>
   <div class="template-section card">
+    <!-- Section title with gradient effect -->
     <h2 class="section-title">Template</h2>
+    
+    <!-- Template header with title input and changes summary -->
     <div class="template-header">
+      <!-- Title input field -->
       <input
         v-model="title"
         placeholder="Enter template title..."
         class="input title-input"
       />
+      <!-- Changes summary section that shows when changes are detected -->
       <div class="changes-summary" v-if="detectedChanges.length">
         <h4 class="group-title">Detected Changes:</h4>
         <ul>
@@ -14,12 +20,16 @@
         </ul>
       </div>
     </div>
+
+    <!-- Main template textarea -->
     <textarea 
       :value="modelValue"
       @input="updateTemplate"
       placeholder="Enter your template here..."
       class="input template-input"
     ></textarea>
+
+    <!-- Action buttons for saving template and versions -->
     <div class="template-actions">
       <button @click="saveTemplate" class="button">Save Template</button>
       <button @click="saveVersion" v-if="currentTemplateId" class="button">Save New Version</button>
@@ -32,30 +42,41 @@ import axios from 'axios'
 
 export default {
   name: 'TemplateEditor',
+  // Component props
   props: {
+    // The current template content
     modelValue: {
       type: String,
       default: ''
     },
+    // Variables to be used in the template
     variables: {
       type: Object,
       required: true
     }
   },
+  // Component data
   data() {
     return {
+      // Template title
       title: '',
+      // Current template ID (null if not saved)
       currentTemplateId: null,
+      // Previous version for change detection
       previousVersion: null,
+      // List of detected changes
       detectedChanges: []
     }
   },
   methods: {
+    // Update template content and trigger processing
     updateTemplate(event) {
       this.$emit('update:modelValue', event.target.value)
       this.processTemplate()
       this.detectChanges()
     },
+
+    // Process the template with variables
     async processTemplate() {
       try {
         const response = await axios.post('/api/templates/process', {
@@ -69,6 +90,8 @@ export default {
         this.$emit('update:errors', ['Error processing template'])
       }
     },
+
+    // Detect changes between current and previous version
     async detectChanges() {
       if (!this.previousVersion) {
         this.previousVersion = this.modelValue
@@ -96,6 +119,8 @@ export default {
         }
       }
     },
+
+    // Save a new template
     async saveTemplate() {
       if (!this.title.trim()) {
         this.$emit('update:errors', ['Please enter a title for the template'])
@@ -116,6 +141,8 @@ export default {
         this.$emit('update:errors', ['Error saving template'])
       }
     },
+
+    // Save a new version of an existing template
     async saveVersion() {
       if (!this.currentTemplateId) return
       if (!this.title.trim()) {
@@ -141,7 +168,9 @@ export default {
       }
     }
   },
+  // Component watchers
   watch: {
+    // Watch for template content changes
     modelValue: {
       immediate: true,
       handler(newValue) {
@@ -150,6 +179,7 @@ export default {
         }
       }
     },
+    // Watch for variable changes
     variables: {
       deep: true,
       handler() {
@@ -161,6 +191,7 @@ export default {
 </script>
 
 <style scoped>
+/* Template section container */
 .template-section {
   display: flex;
   flex-direction: column;
@@ -168,17 +199,20 @@ export default {
   height: 100%;
 }
 
+/* Template header styles */
 .template-header {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+/* Title input field styles */
 .title-input {
   font-size: 1.125rem;
   font-weight: 500;
 }
 
+/* Template input textarea styles */
 .template-input {
   flex: 1;
   min-height: 0;
@@ -187,6 +221,7 @@ export default {
   resize: none;
 }
 
+/* Changes summary section styles */
 .changes-summary {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.5rem;
@@ -212,6 +247,7 @@ export default {
   line-height: 1.4;
 }
 
+/* Template action buttons container */
 .template-actions {
   display: flex;
   gap: 0.75rem;

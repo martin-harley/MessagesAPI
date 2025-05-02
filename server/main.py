@@ -1,161 +1,263 @@
+"""
+Email Template Editor Server
+This server provides API endpoints for managing email templates and their versions.
+It handles template processing, storage, and retrieval.
+"""
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, Template, TemplateVersion
 import re
 from datetime import datetime
+import sqlite3
+import os
 
+# Initialize Flask application
 app = Flask(__name__)
+
+# Configure CORS to allow frontend requests
 CORS(app)
 
-# Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///templates.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
+# Database initialization
+def init_db():
+    """Initialize the SQLite database and create necessary tables."""
+    conn = sqlite3.connect('templates.db')
+    c = conn.cursor()
+    
+    # Create templates table if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create versions table if it doesn't exist
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            template_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (template_id) REFERENCES templates (id)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
-# Drop and recreate all tables
-with app.app_context():
-    db.drop_all()
-    db.create_all()
+# Initialize database on startup
+init_db()
 
-def find_variables(template):
-    """Find all of the variables in the template that match the pattern"""
-    return re.findall(r'/([a-zA-Z0-9.-][a-zA-Z0-9.-]*[a-zA-Z0-9])', template)
-
-def resolve_variable_path(data, path):
-    """Resolve nested variable paths in the data structure"""
-    parts = path.split('.')
-    current = data
-    for part in parts:
-        if isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
-            return None
-    return current
-
-def process_templates(template, variables):
-    """Process templates by replacing variables with values"""
-    result = template
+# Helper function to process template variables
+def process_template(template, variables):
+    """
+    Process a template by replacing variables with their values.
+    
+    Args:
+        template: The template string with variable placeholders
+        variables: Dictionary of variables and their values
+        
+    Returns:
+        tuple: (processed_template, list_of_errors)
+    """
     errors = []
-
-    for var in find_variables(template):
-        value = resolve_variable_path(variables, var)
-        if value is None:
-            errors.append(f"Variable '/{var}' is not found in the data provided. Please try again.")
-            continue
-        result = result.replace(f'/{var}', str(value))
+    result = template
+    
+    # Find all variable placeholders in the template
+    placeholders = re.findall(r'\{([^}]+)\}', template)
+    
+    for placeholder in placeholders:
+        try:
+            # Split the placeholder into parts (e.g., 'user.firstName')
+            parts = placeholder.split('.')
+            value = variables
+            
+            # Navigate through the nested structure
+            for part in parts:
+                value = value[part]
+                
+            # Replace the placeholder with the value
+            result = result.replace(f'{{{placeholder}}}', str(value))
+        except (KeyError, TypeError):
+            errors.append(f"Variable '{placeholder}' not found or invalid")
     
     return result, errors
 
-
+# API Endpoints
 @app.route('/api/templates', methods=['POST'])
 def create_template():
-    data = request.get_json()
-    template_text = data.get('template')
-    title = data.get('title', 'Untitled Template')
-    description = data.get('description', 'Initial version')
-
-    if not template_text:
-        return jsonify({'error': 'Template text is required; please fill in the text box.'}), 400
-
-    template = Template(title=title)
-    db.session.add(template)
-    db.session.commit()
-
-    version = TemplateVersion(
-        template_id=template.id,
-        content=template_text,
-        description=description,
-        title=title
-    )
-    db.session.add(version)
-    db.session.commit()
-
-    return jsonify({
-        'id' : template.id,
-        'version_id' : version.id,
-        'content' : template_text,
-        'created_at' : version.created_at.isoformat()
-    }), 201
-
+    """
+    Create a new template.
+    
+    Request Body:
+        - template: The template content
+        - title: The template title
+        - description: Optional description
+        
+    Returns:
+        JSON response with the created template data
+        
+    Raises:
+        500 error if template creation fails
+    """
+    try:
+        data = request.get_json()
+        conn = sqlite3.connect('templates.db')
+        c = conn.cursor()
+        
+        # Insert new template
+        c.execute(
+            "INSERT INTO templates (title, content) VALUES (?, ?)",
+            (data['title'], data['template'])
+        )
+        template_id = c.lastrowid
+        
+        # Create initial version
+        c.execute(
+            "INSERT INTO versions (template_id, title, content, description) VALUES (?, ?, ?, ?)",
+            (template_id, data['title'], data['template'], data.get('description', "Initial version"))
+        )
+        
+        conn.commit()
+        
+        # Fetch and return the created template
+        c.execute("SELECT * FROM templates WHERE id = ?", (template_id,))
+        template = c.fetchone()
+        
+        conn.close()
+        
+        return jsonify({
+            "id": template[0],
+            "title": template[1],
+            "content": template[2],
+            "created_at": template[3]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/templates/<int:template_id>/versions', methods=['POST'])
 def create_version(template_id):
-    data = request.get_json()
-    template_text = data.get('template')
-    title = data.get('title', 'Untitled Version')
-    description = data.get('description', 'New Version')
-
-    if not template_text:
-        return jsonify({'error': 'Template text is required; please fill in the field.'}), 400
+    """
+    Create a new version of an existing template.
     
-    template = Template.query.get_or_404(template_id)
-
-    version = TemplateVersion(
-        template_id=template.id,
-        content=template_text,
-        title=title,
-        description=description
-    )
-    db.session.add(version)
-    db.session.commit()
-
-    return jsonify({
-        'id': version.id,
-        'content': template_text,
-        'title': title,
-        'description': description,
-        'created_at': version.created_at.isoformat()
-    }), 201
-
+    Args:
+        template_id: ID of the template to version
+        
+    Request Body:
+        - template: The new version content
+        - title: The version title
+        - description: Optional description
+        
+    Returns:
+        JSON response with the created version data
+        
+    Raises:
+        404 error if template not found
+        500 error if version creation fails
+    """
+    try:
+        data = request.get_json()
+        conn = sqlite3.connect('templates.db')
+        c = conn.cursor()
+        
+        # Verify template exists
+        c.execute("SELECT id FROM templates WHERE id = ?", (template_id,))
+        if not c.fetchone():
+            return jsonify({"error": "Template not found"}), 404
+        
+        # Insert new version
+        c.execute(
+            "INSERT INTO versions (template_id, title, content, description) VALUES (?, ?, ?, ?)",
+            (template_id, data['title'], data['template'], data.get('description'))
+        )
+        version_id = c.lastrowid
+        
+        conn.commit()
+        
+        # Fetch and return the created version
+        c.execute("SELECT * FROM versions WHERE id = ?", (version_id,))
+        version = c.fetchone()
+        
+        conn.close()
+        
+        return jsonify({
+            "id": version[0],
+            "template_id": version[1],
+            "title": version[2],
+            "content": version[3],
+            "description": version[4],
+            "created_at": version[5]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/templates/<int:template_id>/versions', methods=['GET'])
 def get_versions(template_id):
-    Template.query.get_or_404(template_id)
-    versions = TemplateVersion.query.filter_by(template_id=template_id).order_by(TemplateVersion.created_at.desc()).all()
-
-    return jsonify([{
-        'id': v.id,
-        'content': v.content,
-        'title': v.title,
-        'description': v.description,
-        'created_at': v.created_at.isoformat()
-    } for v in versions])
+    """
+    Get all versions of a template.
+    
+    Args:
+        template_id: ID of the template
+        
+    Returns:
+        JSON response with list of versions
+        
+    Raises:
+        404 error if template not found
+        500 error if versions retrieval fails
+    """
+    try:
+        conn = sqlite3.connect('templates.db')
+        c = conn.cursor()
+        
+        # Verify template exists
+        c.execute("SELECT id FROM templates WHERE id = ?", (template_id,))
+        if not c.fetchone():
+            return jsonify({"error": "Template not found"}), 404
+        
+        # Fetch all versions
+        c.execute("SELECT * FROM versions WHERE template_id = ? ORDER BY created_at DESC", (template_id,))
+        versions = c.fetchall()
+        
+        conn.close()
+        
+        return jsonify([{
+            "id": v[0],
+            "template_id": v[1],
+            "title": v[2],
+            "content": v[3],
+            "description": v[4],
+            "created_at": v[5]
+        } for v in versions])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/templates/process', methods=['POST'])
 def process_template_endpoint():
-    data = request.get_json()
-    template = data.get('template')
-    variables = data.get('variables', {})
+    """
+    Process a template with variables.
+    
+    Request Body:
+        - template: The template content
+        - variables: Dictionary of variables and their values
+        
+    Returns:
+        JSON response with processed template and any errors
+        
+    Raises:
+        500 error if template processing fails
+    """
+    try:
+        data = request.get_json()
+        result, errors = process_template(data['template'], data['variables'])
+        return jsonify({"result": result, "errors": errors})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    if not template:
-        return jsonify({'error': 'Template is required'}), 400
-
-    result, errors = process_templates(template, variables)
-
-    return jsonify({
-        'result': result,
-        'errors': errors
-    })
-
-@app.route('/api/templates/<int:template_id>/revert/<int:version_id>', methods=['POST'])
-def revert_to_version(template_id, version_id):
-    Template.query.get_or_404(template_id)
-    old_version = TemplateVersion.query.get_or_404(version_id)
-
-    if old_version.template_id != template_id:
-        return jsonify({'error': 'This version does not belong to this template.'}), 400
-
-    new_version = TemplateVersion(
-        template_id=template_id,
-        content=old_version.content,
-        description=f'Reverted to version from {old_version.created_at.strftime("%Y-%m-%d %H:%M:%S")}'
-    )
-    db.session.add(new_version)
-    db.session.commit()
-
-    return jsonify({
-        'id': new_version.id,
-        'content': new_version.content,
-        'description': new_version.description,
-        'created_at': new_version.created_at.isoformat()
-    })
+# Run the server
+if __name__ == "__main__":
+    app.run(debug=True)
