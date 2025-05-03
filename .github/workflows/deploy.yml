@@ -28,6 +28,10 @@ jobs:
         working-directory: ./client
         run: npm install
       
+      - name: Make vite executable
+        working-directory: ./client
+        run: chmod +x ./node_modules/.bin/vite
+      
       - name: Build
         working-directory: ./client
         run: npm run build
