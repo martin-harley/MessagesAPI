@@ -39,6 +39,7 @@
 
 <script>
 import axios from 'axios'
+import { API_BASE_URL } from '../config'
 
 export default {
   name: 'TemplateEditor',
@@ -111,7 +112,7 @@ Best regards,
           return `{${variable}}`;
         });
         
-        const response = await axios.post('/api/templates/process', {
+        const response = await axios.post(`${API_BASE_URL}/api/templates/process`, {
           template: templateWithBraces,
           variables: this.variables
         })
@@ -162,7 +163,7 @@ Best regards,
         return
       }
       try {
-        const response = await axios.post('/api/templates', {
+        const response = await axios.post(`${API_BASE_URL}/api/templates`, {
           template: this.modelValue,
           title: this.title,
           description: 'Initial version'
@@ -189,7 +190,7 @@ Best regards,
           ? `Changes:\n${this.detectedChanges.join('\n')}`
           : 'No changes detected'
           
-        await axios.post(`/api/templates/${this.currentTemplateId}/versions`, {
+        await axios.post(`${API_BASE_URL}/api/templates/${this.currentTemplateId}/versions`, {
           template: this.modelValue,
           title: this.title,
           description: description

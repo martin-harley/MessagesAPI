@@ -29,6 +29,7 @@
 
 <script>
 import axios from 'axios'
+import { API_BASE_URL } from '../config'
 
 export default {
   name: 'HistorySection',
@@ -70,7 +71,7 @@ export default {
     async fetchVersions(templateId) {
       if (!templateId) return
       try {
-        const response = await axios.get(`/api/templates/${templateId}/versions`)
+        const response = await axios.get(`${API_BASE_URL}/api/templates/${templateId}/versions`)
         this.versions = response.data
       } catch (error) {
         console.error('Error fetching versions:', error)
