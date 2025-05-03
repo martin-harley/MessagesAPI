@@ -4,7 +4,19 @@ import os
 import webbrowser
 from time import sleep
 
+def install_dependencies():
+    print("Installing Python dependencies...")
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "server/requirements.txt"], check=True)
+        print("Python dependencies installed successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Error installing Python dependencies: {e}")
+        sys.exit(1)
+
 def run_services():
+    # Install dependencies first
+    install_dependencies()
+    
     # Define commands for running both services
     if sys.platform.startswith('win'):
         backend_cmd = 'cd server && python -m flask --app main run'
