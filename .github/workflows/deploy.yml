@@ -26,15 +26,11 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./client
-        run: |
-          npm ci
-          npm install -g npm@latest
+        run: npm install
       
       - name: Build
         working-directory: ./client
-        run: |
-          export PATH=$PATH:$(pwd)/node_modules/.bin
-          ./node_modules/.bin/vite build
+        run: npm run build
       
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
