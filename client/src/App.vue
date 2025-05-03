@@ -105,6 +105,12 @@ export default {
     // Load a specific version of the template
     loadVersion(template) {
       this.templateContent = template
+      // Ensure template processing happens after the next tick
+      this.$nextTick(() => {
+        if (this.$refs.templateEditor) {
+          this.$refs.templateEditor.processTemplate()
+        }
+      })
     },
     // Handle template ID changes and fetch versions
     handleTemplateIdChange(templateId) {
@@ -116,6 +122,19 @@ export default {
     handleVersionSaved(templateId) {
       if (this.$refs.historySection) {
         this.$refs.historySection.fetchVersions(templateId)
+      }
+    }
+  },
+  // Add watcher for template content changes
+  watch: {
+    templateContent: {
+      immediate: true,
+      handler() {
+        this.$nextTick(() => {
+          if (this.$refs.templateEditor) {
+            this.$refs.templateEditor.processTemplate()
+          }
+        })
       }
     }
   }

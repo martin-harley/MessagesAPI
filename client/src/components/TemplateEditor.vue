@@ -88,6 +88,10 @@ Best regards,
       this.$emit('update:modelValue', this.defaultTemplate);
     }
   },
+  mounted() {
+    // Process template when component is mounted
+    this.processTemplate();
+  },
   methods: {
     // Update template content and trigger processing
     updateTemplate(event) {
