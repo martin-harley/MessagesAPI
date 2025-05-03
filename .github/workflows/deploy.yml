@@ -41,8 +41,9 @@ jobs:
         uses: actions/configure-pages@v2
       
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
+          name: github-pages
           path: 'client/dist'
 
   deploy:
