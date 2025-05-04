@@ -6,7 +6,7 @@ A modern web application for creating, managing, and previewing email templates 
 
 - **Template Editor**: Create and edit email templates with a user-friendly interface
 - **Version Control**: Track changes to templates with detailed version history
-- **Variable Support**: Use dynamic variables in templates (e.g., `{user.firstName}`)
+- **Variable Support**: Use dynamic variables in templates (e.g., `/user.firstName`)
 - **Live Preview**: See how your template looks with sample data
 - **Responsive Design**: Works on desktop and mobile devices
 - **Modern UI**: Clean, intuitive interface with smooth animations
