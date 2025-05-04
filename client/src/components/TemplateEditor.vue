@@ -235,6 +235,7 @@ Best regards,
   flex-direction: column;
   gap: 1.5rem;
   height: 100%;
+  min-height: 100%;
 }
 
 /* Template header styles */
@@ -253,10 +254,12 @@ Best regards,
 /* Template input textarea styles */
 .template-input {
   flex: 1;
-  min-height: 0;
+  min-height: 300px;
+  height: 100%;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   line-height: 1.5;
   resize: none;
+  overflow-y: auto;
 }
 
 /* Changes summary section styles */
@@ -264,6 +267,8 @@ Best regards,
   background: rgba(255, 255, 255, 0.05);
   border-radius: 0.5rem;
   padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .changes-summary h4 {
@@ -294,5 +299,16 @@ Best regards,
 
 .button {
   flex: 1;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .template-section {
+    min-height: 100vh;
+  }
+  
+  .template-input {
+    min-height: 400px;
+  }
 }
 </style> 
