@@ -97,8 +97,10 @@ Best regards,
     // Update template content and trigger processing
     updateTemplate(event) {
       this.$emit('update:modelValue', event.target.value)
-      this.processTemplate()
-      this.detectChanges()
+      this.$nextTick(() => {
+        this.processTemplate()
+        this.detectChanges()
+      })
     },
 
     // Process the template with variables
