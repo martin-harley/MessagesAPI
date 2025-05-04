@@ -3,5 +3,10 @@
   "buildCommand": "chmod +x build.sh && ./build.sh",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps",
+  "git": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  }
 } 
